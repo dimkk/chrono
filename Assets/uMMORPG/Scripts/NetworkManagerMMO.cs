@@ -10,6 +10,7 @@ using System.Text.RegularExpressions;
 using System.Linq;
 using UnityEngine;
 using Mirror;
+using Assets.uMMORPG.Scripts;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -21,6 +22,7 @@ public enum NetworkState {Offline, Handshake, Lobby, World}
 
 public partial class NetworkManagerMMO : NetworkManager
 {
+    
     // current network manager state on client
     public NetworkState state = NetworkState.Offline;
 
@@ -32,12 +34,20 @@ public partial class NetworkManagerMMO : NetworkManager
     [Header("UI")]
     public UIPopup uiPopup;
 
+    [Header("MQ")]
+    public bool UseMQ;
+    public String MQ_ServerAddress;
+    public String MQ_Login;
+    public String MQ_Password;
+    private mQ _mq;
+
     // login info for the local player
     // we don't just name it 'account' to avoid collisions in handshake
     [Header("Login")]
     public string loginAccount = "";
     public string loginPassword = "";
 
+    
     // we may want to add another game server if the first one gets too crowded.
     // the server list allows people to choose a server.
     //
@@ -103,6 +113,23 @@ public partial class NetworkManagerMMO : NetworkManager
 
         // addon system hooks
         Utils.InvokeMany(typeof(NetworkManagerMMO), this, "Start_");
+
+        if (UseMQ)
+        {
+            try
+            {
+                _mq = new mQ(MQ_ServerAddress, MQ_Login, MQ_Password);
+                var dict = new Dictionary<int, String>();
+                dict.Add(1, "test");
+                dict.Add(2, "test2");
+                mQActions.sendDict(_mq.getChannel(), "test_q", dict);
+            }
+            catch(Exception ex)
+            {
+                Debug.LogException(ex);
+            }
+            
+        }
     }
 
     void Update()
@@ -671,6 +698,11 @@ public partial class NetworkManagerMMO : NetworkManager
             StopClient();
             print("OnApplicationQuit: stopped client");
         }
+        if (UseMQ && _mq != null)
+        {
+            _mq.off();
+        }
+        
     }
 
     new void OnValidate()
