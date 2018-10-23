@@ -40,6 +40,8 @@ public partial class NetworkManagerMMO : NetworkManager
     public String MQ_Login;
     public String MQ_Password;
     private mQ _mq;
+    private RabbitMQ.Client.IModel _channel;
+    private mQActions MQ;
 
     // login info for the local player
     // we don't just name it 'account' to avoid collisions in handshake
@@ -119,16 +121,15 @@ public partial class NetworkManagerMMO : NetworkManager
             try
             {
                 _mq = new mQ(MQ_ServerAddress, MQ_Login, MQ_Password);
-                var dict = new Dictionary<int, String>();
-                dict.Add(1, "test");
-                dict.Add(2, "test2");
-                mQActions.sendDict(_mq.getChannel(), "test_q", dict);
+                _channel = _mq.getChannel();
+                MQ = new mQActions(_channel);
+                Debug.Log(" [MQ] connection init done");
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Debug.LogException(ex);
             }
-            
+
         }
     }
 
@@ -197,6 +198,11 @@ public partial class NetworkManagerMMO : NetworkManager
 
         // addon system hooks
         Utils.InvokeMany(typeof(NetworkManagerMMO), this, "OnStartServer_");
+
+        if (UseMQ)
+        {
+            MQ.sendObject("Server_Health", "", String.Format("{0}({1}) server_start", serverList[0].name, serverList[0].ip));
+        }
     }
 
     public override void OnStopServer()
@@ -209,6 +215,11 @@ public partial class NetworkManagerMMO : NetworkManager
 
         // addon system hooks
         Utils.InvokeMany(typeof(NetworkManagerMMO), this, "OnStopServer_");
+
+        if (UseMQ)
+        {
+            MQ.sendObject("Server_Health", "", String.Format("{0}({1}) server_stop", serverList[0].name, serverList[0].ip));
+        }
     }
 
     // handshake: login ////////////////////////////////////////////////////////
@@ -248,6 +259,8 @@ public partial class NetworkManagerMMO : NetworkManager
         // call base function to make sure that client becomes "ready"
         //base.OnClientConnect(conn);
         ClientScene.Ready(conn); // from bitbucket OnClientConnect source
+
+        
     }
 
     // the default OnClientSceneChanged sets the client as ready automatically,
@@ -288,7 +301,7 @@ public partial class NetworkManagerMMO : NetworkManager
     {
         print("OnServerLogin " + netMsg.conn);
         LoginMsg message = netMsg.ReadMessage<LoginMsg>();
-
+        var result = "";
         // correct version?
         if (message.version == Application.version)
         {
@@ -302,7 +315,7 @@ public partial class NetworkManagerMMO : NetworkManager
                     if (!AccountLoggedIn(message.account))
                     {
                         print("login successful: " + message.account);
-
+                        result = "login successful: " + message.account;
                         // add to logged in accounts
                         lobby[netMsg.conn] = message.account;
 
@@ -317,7 +330,7 @@ public partial class NetworkManagerMMO : NetworkManager
                     {
                         print("account already logged in: " + message.account);
                         ClientSendPopup(netMsg.conn, "already logged in", true);
-
+                        result = "account already logged in: " + message.account;
                         // note: we should disconnect the client here, but we can't as
                         // long as unity has no "SendAllAndThenDisconnect" function,
                         // because then the error message would never be sent.
@@ -328,18 +341,26 @@ public partial class NetworkManagerMMO : NetworkManager
                 {
                     print("invalid account or password for: " + message.account);
                     ClientSendPopup(netMsg.conn, "invalid account", true);
+                    result = "invalid account or password for: " + message.account;
                 }
             }
             else
             {
                 print("account name not allowed: " + message.account);
                 ClientSendPopup(netMsg.conn, "account name not allowed", true);
+                result = "account name not allowed: " + message.account;
             }
         }
         else
         {
             print("version mismatch: " + message.account + " expected:" + Application.version + " received: " + message.version);
             ClientSendPopup(netMsg.conn, "outdated version", true);
+            result = "version mismatch: " + message.account + " expected:" + Application.version + " received: " + message.version;
+        }
+
+        if (UseMQ)
+        {
+            MQ.sendObject("Clients", "", message.account + " tryed to log in, result: " + result);
         }
     }
 
@@ -638,10 +659,21 @@ public partial class NetworkManagerMMO : NetworkManager
         // save player (if any)
         if (conn.playerController != null)
         {
+            if (UseMQ)
+            {
+                MQ.sendObject("Clients", "", conn.playerController.GetComponent<Player>().account + " disconnected");
+            }
             Database.CharacterSave(conn.playerController.GetComponent<Player>(), false);
             print("saved:" + conn.playerController.name);
         }
-        else print("no player to save for: " + conn);
+        else
+        {
+            print("no player to save for: " + conn);
+            if (UseMQ)
+            {
+                MQ.sendObject("Clients", "", conn.address + " disconnect on login screen:(");
+            }
+        }
 
         // addon system hooks
         Utils.InvokeMany(typeof(NetworkManagerMMO), this, "OnServerDisconnect_", conn);
@@ -649,8 +681,11 @@ public partial class NetworkManagerMMO : NetworkManager
         // remove logged in account after everything else was done
         lobby.Remove(conn); // just returns false if not found
 
+        
+
         // do base function logic (removes the player for the connection)
         base.OnServerDisconnect(conn);
+
     }
 
     // called on the client if he disconnects
@@ -698,6 +733,7 @@ public partial class NetworkManagerMMO : NetworkManager
             StopClient();
             print("OnApplicationQuit: stopped client");
         }
+
         if (UseMQ && _mq != null)
         {
             _mq.off();

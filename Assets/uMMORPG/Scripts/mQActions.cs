@@ -1,4 +1,5 @@
-﻿using RabbitMQ.Client;
+﻿using Newtonsoft.Json;
+using RabbitMQ.Client;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -12,42 +13,39 @@ namespace Assets.uMMORPG.Scripts
 
     public class mQActions
     {
-
-        public static void sendDict(IModel channel, string queue, IDictionary table)
+        private IModel _channel;
+        public mQActions(IModel channel)
         {
-            channel.QueueDeclare(queue: queue,
+            _channel = channel;
+        }
+
+        public void sendObject(string queue, string exchange, object data)
+        {
+            try
+            {
+                _channel.QueueDeclare(queue: queue,
                                  durable: true,
                                  exclusive: false,
                                  autoDelete: false,
                                  arguments: null);
 
-            var message = table.ToString();
-            var body = Encoding.UTF8.GetBytes(message);
+                var message = JsonConvert.SerializeObject(data);
+                var body = Encoding.UTF8.GetBytes(message);
 
-            var properties = channel.CreateBasicProperties();
-            properties.SetPersistent(true);
+                var properties = _channel.CreateBasicProperties();
+                properties.SetPersistent(true);
 
-            channel.BasicPublish(exchange: "",
-                                 routingKey: queue,
-                                 basicProperties: properties,
-                                 body: body);
-            Debug.Log(String.Format(" [x] Sent {0}", message));
-        }
-    }
-
-    public static class Exts
-    {
-        public static string ToString(this IDictionary source, string keyValueSeparator,
-                                                       string sequenceSeparator)
-        {
-            if (source == null)
-                throw new ArgumentException("Parameter source can not be null.");
-
-            return source.Cast<DictionaryEntry>()
-                         .Aggregate(new StringBuilder(),
-                                    (sb, x) => sb.Append(x.Key + keyValueSeparator + x.Value
-                                                          + sequenceSeparator),
-                                    sb => sb.ToString(0, sb.Length - 1));
+                _channel.BasicPublish(exchange: exchange,
+                                     routingKey: queue,
+                                     basicProperties: properties,
+                                     body: body);
+                Debug.Log(String.Format(" [MQ] Sent {0}", message));
+            }
+            catch (Exception ex)
+            {
+                Debug.LogException(ex);
+            }
+            
         }
     }
 }

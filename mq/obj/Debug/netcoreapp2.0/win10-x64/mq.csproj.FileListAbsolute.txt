@@ -1,0 +1,13 @@
+C:\Users\dvolk\Documents\test\mq\bin\Debug\netcoreapp2.0\win10-x64\hostpolicy.dll
+C:\Users\dvolk\Documents\test\mq\bin\Debug\netcoreapp2.0\win10-x64\hostfxr.dll
+C:\Users\dvolk\Documents\test\mq\bin\Debug\netcoreapp2.0\win10-x64\mq.exe
+C:\Users\dvolk\Documents\test\mq\bin\Debug\netcoreapp2.0\win10-x64\mq.deps.json
+C:\Users\dvolk\Documents\test\mq\bin\Debug\netcoreapp2.0\win10-x64\mq.runtimeconfig.json
+C:\Users\dvolk\Documents\test\mq\bin\Debug\netcoreapp2.0\win10-x64\mq.runtimeconfig.dev.json
+C:\Users\dvolk\Documents\test\mq\bin\Debug\netcoreapp2.0\win10-x64\mq.dll
+C:\Users\dvolk\Documents\test\mq\bin\Debug\netcoreapp2.0\win10-x64\mq.pdb
+C:\Users\dvolk\Documents\test\mq\obj\Debug\netcoreapp2.0\win10-x64\mq.csproj.CoreCompileInputs.cache
+C:\Users\dvolk\Documents\test\mq\obj\Debug\netcoreapp2.0\win10-x64\mq.AssemblyInfoInputs.cache
+C:\Users\dvolk\Documents\test\mq\obj\Debug\netcoreapp2.0\win10-x64\mq.AssemblyInfo.cs
+C:\Users\dvolk\Documents\test\mq\obj\Debug\netcoreapp2.0\win10-x64\mq.dll
+C:\Users\dvolk\Documents\test\mq\obj\Debug\netcoreapp2.0\win10-x64\mq.pdb

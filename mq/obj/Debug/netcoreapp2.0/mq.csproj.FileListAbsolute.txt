@@ -1,0 +1,10 @@
+C:\Users\dvolk\Documents\test\mq\bin\Debug\netcoreapp2.0\mq.deps.json
+C:\Users\dvolk\Documents\test\mq\bin\Debug\netcoreapp2.0\mq.runtimeconfig.json
+C:\Users\dvolk\Documents\test\mq\bin\Debug\netcoreapp2.0\mq.runtimeconfig.dev.json
+C:\Users\dvolk\Documents\test\mq\bin\Debug\netcoreapp2.0\mq.dll
+C:\Users\dvolk\Documents\test\mq\bin\Debug\netcoreapp2.0\mq.pdb
+C:\Users\dvolk\Documents\test\mq\obj\Debug\netcoreapp2.0\mq.csproj.CoreCompileInputs.cache
+C:\Users\dvolk\Documents\test\mq\obj\Debug\netcoreapp2.0\mq.AssemblyInfoInputs.cache
+C:\Users\dvolk\Documents\test\mq\obj\Debug\netcoreapp2.0\mq.AssemblyInfo.cs
+C:\Users\dvolk\Documents\test\mq\obj\Debug\netcoreapp2.0\mq.dll
+C:\Users\dvolk\Documents\test\mq\obj\Debug\netcoreapp2.0\mq.pdb
