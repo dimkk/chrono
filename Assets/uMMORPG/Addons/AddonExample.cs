@@ -64,7 +64,80 @@ using System.Text;
 using System.Collections.Generic;
 using UnityEngine;
 using Mirror;
+using System;
 
+// networkmanager //////////////////////////////////////////////////////////////
+public partial class NetworkManagerMMO
+{
+    [Header("MQ")]
+    public bool UseMQ;
+    public String MQ_ServerAddress;
+    public String MQ_Login;
+    public String MQ_Password;
+    private mQ _mq;
+    private RabbitMQ.Client.IModel _channel;
+    private mQActions MQ;
+    void Start_Example()
+    {
+        if (UseMQ)
+        {
+            try
+            {
+                _mq = new mQ(MQ_ServerAddress, MQ_Login, MQ_Password);
+                _channel = _mq.getChannel();
+                MQ = new mQActions(_channel);
+                Debug.Log(" [MQ] connection init done");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogException(ex);
+            }
+
+        }
+    }
+    void OnStartServer_Example()
+    {
+        if (UseMQ)
+        {
+            MQ.sendObject("Server_Health", "", String.Format("{0}({1}) server_start", serverList[0].name, serverList[0].ip));
+        }
+    }
+    void OnStopServer_Example()
+    {
+        if (UseMQ)
+        {
+            MQ.sendObject("Server_Health", "", String.Format("{0}({1}) server_stop", serverList[0].name, serverList[0].ip));
+        }
+    }
+    void OnClientConnect_Example(NetworkConnection conn) { }
+    void OnServerLogin_Example(LoginMsg message)
+    {
+        if (UseMQ)
+        {
+            MQ.sendObject("Clients", "", message.account + " logged in");
+        }
+    }
+    void OnClientCharactersAvailable_Example(CharactersAvailableMsg message) { }
+    void OnServerAddPlayer_Example(string account, GameObject player, NetworkConnection conn, CharacterSelectMsg message) { }
+    void OnServerCharacterCreate_Example(CharacterCreateMsg message, Player player) { }
+    void OnServerCharacterDelete_Example(CharacterDeleteMsg message) { }
+    void OnServerDisconnect_Example(NetworkConnection conn)
+    {
+        if (UseMQ)
+        {
+            if (conn.playerController != null)
+            {
+                MQ.sendObject("Clients", "", conn.playerController.GetComponent<Player>().account + " disconnected");
+            }
+            else
+            {
+                MQ.sendObject("Clients", "", conn.address + " disconnect on login screen:(");
+            }
+
+        }
+    }
+    void OnClientDisconnect_Example(NetworkConnection conn) { }
+}
 // entities ////////////////////////////////////////////////////////////////////
 public partial class Player
 {
@@ -217,21 +290,6 @@ public partial class Database
     static void CharacterSave_Example(Player player) {}
 }
 
-// networkmanager //////////////////////////////////////////////////////////////
-public partial class NetworkManagerMMO
-{
-    void Start_Example() {}
-    void OnStartServer_Example() {}
-    void OnStopServer_Example() {}
-    void OnClientConnect_Example(NetworkConnection conn) {}
-    void OnServerLogin_Example(LoginMsg message) {}
-    void OnClientCharactersAvailable_Example(CharactersAvailableMsg message) {}
-    void OnServerAddPlayer_Example(string account, GameObject player, NetworkConnection conn, CharacterSelectMsg message) {}
-    void OnServerCharacterCreate_Example(CharacterCreateMsg message, Player player) {}
-    void OnServerCharacterDelete_Example(CharacterDeleteMsg message) {}
-    void OnServerDisconnect_Example(NetworkConnection conn) {}
-    void OnClientDisconnect_Example(NetworkConnection conn) {}
-}
 
 // network messages ////////////////////////////////////////////////////////////
 // all network messages can be extended

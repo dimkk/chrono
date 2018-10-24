@@ -10,7 +10,7 @@ using System.Text.RegularExpressions;
 using System.Linq;
 using UnityEngine;
 using Mirror;
-using Assets.uMMORPG.Scripts;
+using System.IO;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -22,8 +22,9 @@ public enum NetworkState {Offline, Handshake, Lobby, World}
 
 public partial class NetworkManagerMMO : NetworkManager
 {
-    
+
     // current network manager state on client
+    [Header("Common")]
     public NetworkState state = NetworkState.Offline;
 
     // <conn, account> dict for the lobby
@@ -34,14 +35,7 @@ public partial class NetworkManagerMMO : NetworkManager
     [Header("UI")]
     public UIPopup uiPopup;
 
-    [Header("MQ")]
-    public bool UseMQ;
-    public String MQ_ServerAddress;
-    public String MQ_Login;
-    public String MQ_Password;
-    private mQ _mq;
-    private RabbitMQ.Client.IModel _channel;
-    private mQActions MQ;
+
 
     // login info for the local player
     // we don't just name it 'account' to avoid collisions in handshake
@@ -103,6 +97,8 @@ public partial class NetworkManagerMMO : NetworkManager
     // events //////////////////////////////////////////////////////////////////
     void Start()
     {
+        //this.serverBindToIP = true;
+        //this.serverBindAddress = "0.0.0.0";
         // headless mode? then automatically start a dedicated server
         // (because we can't click the button in headless mode)
         // -> only if not started yet so that addons can also start it if needed
@@ -115,22 +111,6 @@ public partial class NetworkManagerMMO : NetworkManager
 
         // addon system hooks
         Utils.InvokeMany(typeof(NetworkManagerMMO), this, "Start_");
-
-        if (UseMQ)
-        {
-            try
-            {
-                _mq = new mQ(MQ_ServerAddress, MQ_Login, MQ_Password);
-                _channel = _mq.getChannel();
-                MQ = new mQActions(_channel);
-                Debug.Log(" [MQ] connection init done");
-            }
-            catch (Exception ex)
-            {
-                Debug.LogException(ex);
-            }
-
-        }
     }
 
     void Update()
@@ -199,10 +179,7 @@ public partial class NetworkManagerMMO : NetworkManager
         // addon system hooks
         Utils.InvokeMany(typeof(NetworkManagerMMO), this, "OnStartServer_");
 
-        if (UseMQ)
-        {
-            MQ.sendObject("Server_Health", "", String.Format("{0}({1}) server_start", serverList[0].name, serverList[0].ip));
-        }
+        
     }
 
     public override void OnStopServer()
@@ -216,10 +193,7 @@ public partial class NetworkManagerMMO : NetworkManager
         // addon system hooks
         Utils.InvokeMany(typeof(NetworkManagerMMO), this, "OnStopServer_");
 
-        if (UseMQ)
-        {
-            MQ.sendObject("Server_Health", "", String.Format("{0}({1}) server_stop", serverList[0].name, serverList[0].ip));
-        }
+
     }
 
     // handshake: login ////////////////////////////////////////////////////////
@@ -358,10 +332,7 @@ public partial class NetworkManagerMMO : NetworkManager
             result = "version mismatch: " + message.account + " expected:" + Application.version + " received: " + message.version;
         }
 
-        if (UseMQ)
-        {
-            MQ.sendObject("Clients", "", message.account + " tryed to log in, result: " + result);
-        }
+        
     }
 
     // handshake: character selection //////////////////////////////////////////
@@ -659,20 +630,12 @@ public partial class NetworkManagerMMO : NetworkManager
         // save player (if any)
         if (conn.playerController != null)
         {
-            if (UseMQ)
-            {
-                MQ.sendObject("Clients", "", conn.playerController.GetComponent<Player>().account + " disconnected");
-            }
             Database.CharacterSave(conn.playerController.GetComponent<Player>(), false);
             print("saved:" + conn.playerController.name);
         }
         else
         {
             print("no player to save for: " + conn);
-            if (UseMQ)
-            {
-                MQ.sendObject("Clients", "", conn.address + " disconnect on login screen:(");
-            }
         }
 
         // addon system hooks
